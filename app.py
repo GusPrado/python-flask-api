@@ -1,18 +1,24 @@
 from flask import Flask, request
 from flask_restful import Resource, Api
 from flask_httpauth import HTTPBasicAuth
+from werkzeug.security import generate_password_hash, check_password_hash
 from models import Pessoas, Usuarios
 
 auth = HTTPBasicAuth()
 app = Flask(__name__)
 api = Api(app)
 
-#IMPLEMENT PASSWD HASH TO FINISH
 @auth.verify_password
-def verificacao(login, senha):
-    if not (login, senha):
+def verificacao(username, senha):
+    if not (username, senha):
         return False
-    return Usuarios.query.filter_by(login=login, senha=senha).first()
+    else:
+        usuario = Usuarios.query.filter_by(login=username).first()
+        if not usuario:
+            return False
+        if check_password_hash(usuario.senha, senha):
+             return True
+        return False
 class Pessoa(Resource):
 
     def get(self, nome):
@@ -78,7 +84,7 @@ class Usuario(Resource):
     
     def post(self, username):
             dados = request.json
-            usuario = Usuarios(login=dados['login'], senha=dados['senha'])
+            usuario = Usuarios(login=dados['login'], senha=generate_password_hash(dados['senha']))
             usuario.save()
             response = {
                 'id':usuario.id,
